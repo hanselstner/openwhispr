@@ -204,7 +204,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   ),
   cloudReasoningMode: readString("cloudReasoningMode", "openwhispr"),
   cloudReasoningBaseUrl: readString("cloudReasoningBaseUrl", API_ENDPOINTS.OPENAI_BASE),
-  customDictionary: readStringArray("customDictionary", []),
+  customDictionary: readStringArray("customDictionary", ["Server", "Backend", "Frontend", "API", "REST", "GraphQL", "Backup", "Upload", "Download", "Deploy", "Deployment", "Commit", "Branch", "Merge", "Repository", "Git", "Datenbank", "Database", "SQL", "Query", "Injection", "Authentication", "Authorization", "Docker", "Container", "Kubernetes", "Pipeline", "CI/CD", "DevOps", "Debugging", "Refactoring", "Codebase", "TypeScript", "JavaScript", "Python", "React", "Endpoint", "Middleware", "Framework", "Sprint", "Ticket", "Jira", "Kanban", "Pull Request", "Code Review", "Staging", "Localhost", "Proxy", "Gateway", "Webhook", "Token", "Session", "Cookie", "Cache", "Cluster", "Node", "Instance", "Microservice", "Supabase", "Vercel", "AWS", "Azure"]),
   assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
 
   useReasoningModel: readBoolean("useReasoningModel", true),
