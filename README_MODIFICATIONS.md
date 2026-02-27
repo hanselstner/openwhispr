@@ -2,17 +2,21 @@
 
 This fork extends [OpenWhispr](https://github.com/OpenWhispr/openwhispr) with features specifically designed for **German-speaking IT professionals and developers** who use speech-to-text as a daily dictation tool on Windows.
 
+The goal is a **"Dictation like breathing"** workflow: press hotkey → speak → switch to target app → text appears. No clicks, no friction.
+
 ## Overview of Changes
 
-Three feature commits on top of upstream v1.5.4 (`06c8b3d`):
+Five feature areas on top of upstream v1.5.4 (`06c8b3d`):
 
-| # | Commit | Description |
-|---|--------|-------------|
-| 1 | `feat: support dead-key hotkeys (^)` | Enables using dead keys like `^` (circumflex) as part of global hotkeys |
-| 2 | `feat: auto-stop recording on focus loss` | Automatically stops recording when the user switches to another application |
-| 3 | `feat: pre-populate IT/programmer dictionary` | Seeds the custom dictionary with ~55 IT/programming terms |
+| # | Area | Description |
+|---|------|-------------|
+| 1 | Dead-Key Hotkey | Enables dead keys like `^` (circumflex) as global hotkeys via native Windows hook |
+| 2 | Focus-Loss Auto-Stop | Stops recording automatically when the user switches to another application |
+| 3 | IT/Programmer Dictionary | Seeds the custom dictionary with ~55 IT/programming terms |
+| 4 | Configurable Behavior | All custom features are opt-out toggles in the Settings UI |
+| 5 | AI Orb Widget | Complete visual overhaul of the floating dictation orb |
 
-**Total impact:** ~140 lines added across 8 files (6 modified, 2 new). No dependencies added. No architectural changes.
+**No new npm dependencies. No architectural changes. All features are additive and backwards-compatible.**
 
 ---
 
@@ -83,6 +87,7 @@ useAudioRecording                   main.js
 
 ### Design Decisions
 - **Polling (500ms)** was chosen over window event hooks because Electron's `BrowserWindow.on('blur')` doesn't reliably fire when the user switches via Alt+Tab or taskbar click.
+- **Async PowerShell** (`child_process.exec`) keeps the Node.js event loop free during polling. A busy-guard prevents parallel processes from piling up.
 - **PowerShell + P/Invoke** was chosen to avoid adding native dependencies. The `get-foreground-pid.ps1` script is only loaded once and runs with minimal overhead.
 - The watcher **only runs while recording** to avoid unnecessary background CPU usage.
 
@@ -113,6 +118,59 @@ The `customDictionary` default value in `settingsStore.ts` is seeded with ~55 co
 | General | Upload, Download, Debugging, Refactoring, Frontend, Backend |
 
 Users can add, remove, or modify terms through the existing settings UI.
+
+---
+
+## Feature 4: Configurable Behavior (Opt-Out Toggles)
+
+All custom features are surfaced as settings in the UI so that other OpenWhispr users who adopt this fork are not forced into the opinionated workflow.
+
+### Settings Added
+
+| Setting | Default | Location | Description |
+|---------|---------|----------|-------------|
+| Stop when switching apps | **ON** | Settings → General → Dictation Behavior | Disables focus-loss auto-stop for users who prefer manual control |
+
+### Files Changed
+- **`src/stores/settingsStore.ts`** – Added `stopOnFocusLoss: boolean` (default `true`) + `setStopOnFocusLoss()` with IPC notification
+- **`src/types/electron.ts`** – Added `setStopOnFocusLoss?` to the `ElectronAPI` interface
+- **`preload.js`** – Exposed `stop-on-focus-loss-changed` IPC sender
+- **`main.js`** – IPC listener that starts/stops `focusWatcher` based on the setting value
+- **`src/hooks/useSettings.ts`** – Exposes the setting + syncs to main process on mount
+- **`src/components/SettingsPage.tsx`** – Windows-only toggle in new "Dictation Behavior" section
+- **9 × `translation.json`** – Keys: `dictationBehavior.title/description/stopOnFocusLoss/stopOnFocusLossDescription`
+
+### Design
+The toggle is only rendered on Windows (`platform === "win32"`) because `focusWatcher.js` uses PowerShell/Win32 APIs exclusively. On macOS and Linux the section is invisible.
+
+---
+
+## Feature 5: AI Orb Widget
+
+### Problem
+The original floating widget used a static microphone icon with simple color changes. For a "dictation like breathing" workflow the visual feedback needs to be immediate and expressive.
+
+### Solution
+Replaced all icon components with an animated **AI Orb** — a glassmorphism button with voice bars, sonar rings, and a spinning gradient arc that react to the dictation state.
+
+### Files Changed
+- **`src/App.jsx`** – New `AIOrb` component replaces `SoundWaveIcon`, `VoiceWaveIndicator`, and `LoadingDots`. `getMicButtonProps()` rewritten with oklch glassmorphism gradients and multi-layer box-shadows.
+- **`src/index.css`** – Four new CSS keyframes: `ai-bar-wave`, `ai-bar-breathe`, `ai-sonar-ring`, `ai-spin-arc`
+
+### Visual States
+
+| State | Button | Bars | Decorators |
+|-------|--------|------|------------|
+| **Idle** | Dark violet glassmorphism | 5 bars, slow breathing | — |
+| **Hover** | Brighter violet + scale 107% | 5 bars, slow breathing | — |
+| **Recording** | Purple gradient + violet glow | 7 bars, fast organic wave | 2 expanding sonar rings |
+| **Processing** | Indigo gradient | 5 bars, medium wave | Spinning conic-gradient arc |
+
+### Design Details
+- **Glassmorphism**: `oklch` color space gradients, inner shimmer highlight, three-layer `box-shadow` (ring + glow + depth)
+- **Voice bars**: Each bar gets a unique animation duration based on its distance from center, creating an organic, non-mechanical feel
+- **Sonar rings**: Rendered outside the button DOM via an absolute-positioned wrapper, so they expand beyond the button boundary without overflow clipping
+- **Spinning arc**: `conic-gradient` rotating at 1.4s — communicates "AI is thinking"
 
 ---
 

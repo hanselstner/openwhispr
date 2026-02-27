@@ -711,7 +711,7 @@ async function startApp() {
     const needsNativeListener = (hotkey, mode) => {
       if (!isValidHotkey(hotkey)) return false;
       if (mode === "push") return true;
-      return isRightSideMod(hotkey) || isModifierOnlyHotkey(hotkey);
+      return isRightSideMod(hotkey) || isModifierOnlyHotkey(hotkey) || hasNonStandardKey(hotkey);
     };
 
     windowsKeyManager.on("key-down", (_key) => {
@@ -798,6 +798,7 @@ async function startApp() {
 
 // Listen for usage limit reached from dictation overlay, forward to control panel
 // Focus-loss auto-stop: stop recording when user switches to another application
+let stopOnFocusLossEnabled = true; // default on; synced from renderer on mount
 const focusWatcher = new FocusWatcher();
 focusWatcher.on("focus-changed", () => {
   if (windowManager) {
@@ -806,9 +807,16 @@ focusWatcher.on("focus-changed", () => {
 });
 
 ipcMain.on("recording-state-changed", (_event, isRecording) => {
-  if (isRecording) {
+  if (isRecording && stopOnFocusLossEnabled) {
     focusWatcher.start();
   } else {
+    focusWatcher.stop();
+  }
+});
+
+ipcMain.on("stop-on-focus-loss-changed", (_event, enabled) => {
+  stopOnFocusLossEnabled = !!enabled;
+  if (!stopOnFocusLossEnabled) {
     focusWatcher.stop();
   }
 });
