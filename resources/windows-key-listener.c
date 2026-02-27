@@ -100,6 +100,8 @@ DWORD ParseKeyCode(const char* keyName) {
     if (strcmp(keyName, "[") == 0) return VK_OEM_4;
     if (strcmp(keyName, "]") == 0) return VK_OEM_6;
     if (strcmp(keyName, "\\") == 0) return VK_OEM_5;
+    // Circumflex/caret dead key (German QWERTZ keyboard: top-left key)
+    if (strcmp(keyName, "^") == 0 || _stricmp(keyName, "Caret") == 0) return VK_OEM_5;
     if (strcmp(keyName, ";") == 0) return VK_OEM_1;
     if (strcmp(keyName, "'") == 0) return VK_OEM_7;
     if (strcmp(keyName, ",") == 0) return VK_OEM_COMMA;
