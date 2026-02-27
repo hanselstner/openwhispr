@@ -2,6 +2,7 @@ const { app, globalShortcut, BrowserWindow, dialog, ipcMain, session } = require
 const path = require("path");
 const http = require("http");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
+const { FocusWatcher } = require("./src/helpers/focusWatcher");
 
 const VALID_CHANNELS = new Set(["development", "staging", "production"]);
 const DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL = {
@@ -796,6 +797,22 @@ async function startApp() {
 }
 
 // Listen for usage limit reached from dictation overlay, forward to control panel
+// Focus-loss auto-stop: stop recording when user switches to another application
+const focusWatcher = new FocusWatcher();
+focusWatcher.on("focus-changed", () => {
+  if (windowManager) {
+    windowManager.sendStopDictation();
+  }
+});
+
+ipcMain.on("recording-state-changed", (_event, isRecording) => {
+  if (isRecording) {
+    focusWatcher.start();
+  } else {
+    focusWatcher.stop();
+  }
+});
+
 ipcMain.on("limit-reached", (_event, data) => {
   if (isLiveWindow(windowManager?.controlPanelWindow)) {
     windowManager.controlPanelWindow.webContents.send("limit-reached", data);

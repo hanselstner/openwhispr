@@ -73,6 +73,7 @@ export const useAudioRecording = (toast, options = {}) => {
     audioManagerRef.current.setCallbacks({
       onStateChange: ({ isRecording, isProcessing, isStreaming }) => {
         setIsRecording(isRecording);
+        window.electronAPI?.notifyRecordingState?.(isRecording);
         setIsProcessing(isProcessing);
         setIsStreaming(isStreaming ?? false);
         if (!isStreaming) {

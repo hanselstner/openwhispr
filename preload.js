@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onToggleDictation: registerListener("toggle-dictation", (callback) => () => callback()),
   onStartDictation: registerListener("start-dictation", (callback) => () => callback()),
   onStopDictation: registerListener("stop-dictation", (callback) => () => callback()),
+    notifyRecordingState: (isRecording) => ipcRenderer.send("recording-state-changed", isRecording),
 
   // Database functions
   saveTranscription: (text) => ipcRenderer.invoke("db-save-transcription", text),
